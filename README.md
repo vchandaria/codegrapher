@@ -17,6 +17,9 @@ Indexing complete in 14.5s
 ```
 
 **Blast radius — "if I change get_dependant, what breaks?"**
+
+Before refactoring a core function, know exactly what you're touching. This query traces all downstream callers transitively — in milliseconds, without reading a single file.
+
 ```
 $ codegrapher-query impact get_dependant --depth 4
 
@@ -33,20 +36,10 @@ Impact analysis for fastapi.dependencies.utils.get_dependant
     fastapi.routing.get_websocket_app.app                       (routing.py:733)
 ```
 
-**Dead code — public API methods with zero internal callers**
-```
-$ codegrapher-query dead --module fastapi
-
-Dead functions in fastapi (30 found)
-  fastapi.applications.FastAPI.build_middleware_stack  (applications.py:1021)
-  fastapi.applications.FastAPI.openapi                 (applications.py:1069)
-  fastapi.applications.FastAPI.__call__                (applications.py:1157)
-  fastapi._compat.v2.ModelField.validate               (_compat/v2.py:160)
-  fastapi._compat.v2.ModelField.serialize              (_compat/v2.py:177)
-  ... 25 more
-```
-
 **Call graph — who calls solve_dependencies?**
+
+Instantly see every internal caller with confidence scores — no grep, no manual tracing. The recursive self-call is correctly detected too.
+
 ```
 $ codegrapher-query callers solve_dependencies
 
@@ -54,6 +47,22 @@ Callers of fastapi.dependencies.utils.solve_dependencies (3 found)
   [0.98] fastapi.dependencies.utils.solve_dependencies  (utils.py:595)  ← recursive
   [0.80] fastapi.routing.get_request_handler.app         (routing.py:378)
   [0.80] fastapi.routing.get_websocket_app.app           (routing.py:733)
+```
+
+**Dead code — functions with zero internal callers**
+
+Identifies functions that are never called from within the codebase. Useful for finding cleanup candidates or understanding which surfaces are purely external API (called by users, not the library itself).
+
+```
+$ codegrapher-query dead --module fastapi
+
+Dead functions in fastapi (30 found)
+  fastapi.applications.FastAPI.build_middleware_stack  (applications.py:1021)  ← external API
+  fastapi.applications.FastAPI.openapi                 (applications.py:1069)  ← external API
+  fastapi.applications.FastAPI.__call__                (applications.py:1157)  ← external API
+  fastapi._compat.v2.ModelField.validate               (_compat/v2.py:160)
+  fastapi._compat.v2.ModelField.serialize              (_compat/v2.py:177)
+  ... 25 more
 ```
 
 ## What it does
