@@ -1,0 +1,14 @@
+{
+  "name": "codegrapher",
+  "version": "0.1.0",
+  "description": "Code intelligence for any Python project. AST indexing, call graph queries, dead code detection, impact analysis, and skill freshness validation.",
+  "author": "Vishal Chandaria",
+  "commands": [
+    { "name": "codegrapher-index",    "description": "Build or rebuild the code index for the current project" },
+    { "name": "codegrapher-query",    "description": "Query the code graph (callers, impact, dead code, deps, etc.)" },
+    { "name": "codegrapher-validate", "description": "Check all Claude skills for stale facts" }
+  ],
+  "agents": [
+    { "name": "code-explorer", "description": "Codebase exploration agent with full index access" }
+  ]
+}
