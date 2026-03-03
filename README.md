@@ -2,6 +2,60 @@
 
 > Code intelligence for any Python project — AST indexing, call graphs, dead code detection, blast radius analysis, and skill freshness validation.
 
+## Demo: FastAPI (1118 files indexed in 14.5s)
+
+```
+$ python -m codegrapher.core.indexer --project-root fastapi/ --clean
+
+Stage 1 DISCOVER: found 1118 Python files in 0.1s
+Stage 2 PARSE:    1118 indexed, 0 skipped, 0 errors in 9.1s
+Stage 2.5 CALL_RESOLVE: 3702/15278 resolved in 0.1s
+Stage 5 GRAPH:    1382 edges in 0.0s
+Stage 6 SYNOPSES: 5241 symbols in 0.4s
+
+Indexing complete in 14.5s
+```
+
+**Blast radius — "if I change get_dependant, what breaks?"**
+```
+$ codegrapher-query impact get_dependant --depth 4
+
+Impact analysis for fastapi.dependencies.utils.get_dependant
+  6 functions affected across 2 modules (depth 4)
+------------------------------------------------------------
+  Depth 1:
+    fastapi.dependencies.utils.get_parameterless_sub_dependant  (dependencies/utils.py:121)
+    fastapi.dependencies.utils.solve_dependencies               (dependencies/utils.py:595)
+    fastapi.routing.APIRoute.__init__                           (routing.py:808)
+    fastapi.routing.APIWebSocketRoute.__init__                  (routing.py:766)
+  Depth 2:
+    fastapi.routing.get_request_handler.app                     (routing.py:378)
+    fastapi.routing.get_websocket_app.app                       (routing.py:733)
+```
+
+**Dead code — public API methods with zero internal callers**
+```
+$ codegrapher-query dead --module fastapi
+
+Dead functions in fastapi (30 found)
+  fastapi.applications.FastAPI.build_middleware_stack  (applications.py:1021)
+  fastapi.applications.FastAPI.openapi                 (applications.py:1069)
+  fastapi.applications.FastAPI.__call__                (applications.py:1157)
+  fastapi._compat.v2.ModelField.validate               (_compat/v2.py:160)
+  fastapi._compat.v2.ModelField.serialize              (_compat/v2.py:177)
+  ... 25 more
+```
+
+**Call graph — who calls solve_dependencies?**
+```
+$ codegrapher-query callers solve_dependencies
+
+Callers of fastapi.dependencies.utils.solve_dependencies (3 found)
+  [0.98] fastapi.dependencies.utils.solve_dependencies  (utils.py:595)  ← recursive
+  [0.80] fastapi.routing.get_request_handler.app         (routing.py:378)
+  [0.80] fastapi.routing.get_websocket_app.app           (routing.py:733)
+```
+
 ## What it does
 
 Install codegrapher on any Python project and instantly get:
@@ -17,24 +71,23 @@ Install codegrapher on any Python project and instantly get:
 ## Installation
 
 ```bash
-# Clone the plugin
-git clone https://github.com/yourusername/codegrapher ~/.claude/plugins/codegrapher
+pip install git+https://github.com/vchandaria/codegrapher.git
 
-# Install dependencies (optional: radon + vulture for richer analysis)
-pip install radon vulture
+# Optional: richer analysis (complexity + dead code via external tools)
+pip install "git+https://github.com/vchandaria/codegrapher.git[all]"
 ```
 
 ## Quick Start
 
 ```bash
-# 1. Index your project (run from parent dir of codegrapher/, ~5s per 100 files)
-python -m codegrapher.core.indexer --clean
+# 1. Index your project (~14s for 1000 files)
+codegrapher-index --clean
 
 # 2. Query the index
-python -m codegrapher.core.query_engine callers my_function
-python -m codegrapher.core.query_engine impact validate_order --depth 4
-python -m codegrapher.core.query_engine dead --module src/legacy
-python -m codegrapher.core.query_engine issues --sev error
+codegrapher-query callers my_function
+codegrapher-query impact validate_order --depth 4
+codegrapher-query dead --module src/legacy
+codegrapher-query issues --sev error
 ```
 
 ## Slash Commands (Claude Code)
